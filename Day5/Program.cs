@@ -7,11 +7,11 @@ namespace Day5
 {
     class Program
     {
-        static readonly string Input = File.ReadAllText("input.txt");
+        static readonly string[] Input = File.ReadAllLines("input.txt");
 
         static void Main(string[] args)
         {
-            var processedInput = ProcessInput(Input);
+            var processedInput = ProcessInput(string.Join("", Input));
             Console.WriteLine("Part 1: " + processedInput.Count);
 
             var shortest = Enumerable.Range('a', 'z' - 'a')

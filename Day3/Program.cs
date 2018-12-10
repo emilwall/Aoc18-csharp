@@ -8,10 +8,11 @@ namespace Day3
 {
     class Program
     {
+        static readonly string[] Input = File.ReadAllLines("input.txt");
+
         static void Main(string[] args)
         {
-            var input = File.ReadAllLines("input.txt");
-            var rectangles = input.Select(line =>
+            var rectangles = Input.Select(line =>
             {
                 var xIndex = line.IndexOf('@') + 2;
                 var yIndex = line.IndexOf(',') + 1;
