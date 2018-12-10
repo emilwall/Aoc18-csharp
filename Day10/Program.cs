@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 
@@ -8,7 +10,7 @@ namespace Day10
     {
         static readonly string[] Input = File.ReadAllLines("input.txt");
 
-        static readonly Pos[] Parsed = ParseInput();
+        static IReadOnlyCollection<Pos> Parsed = ParseInput();
 
         static void Main(string[] args)
         {
@@ -19,7 +21,7 @@ namespace Day10
             {
                 prevHeight = height;
                 UpdateGrid(1);
-                height = Parsed.Select(pos => pos.Y).Max() - Parsed.Select(pos => pos.Y).Min();
+                height = Parsed.Max(pos => pos.Y) - Parsed.Min(pos => pos.Y);
                 if (prevHeight < height)
                 {
                     Console.WriteLine("Part 1:");
@@ -38,7 +40,7 @@ namespace Day10
             public int VelY { get; set; }
         }
 
-        private static Pos[] ParseInput()
+        private static IReadOnlyCollection<Pos> ParseInput()
         {
             return Input.Select(line =>
             {
@@ -53,7 +55,7 @@ namespace Day10
                     VelX = int.Parse(line.Substring(n4, n5 - n4)),
                     VelY = int.Parse(line.Substring(n5 + 1, line.Length - n5 - 2))
                 };
-            }).ToArray();
+            }).ToList();
         }
 
         private static void UpdateGrid(int multiplier)
@@ -67,20 +69,18 @@ namespace Day10
 
         private static void DisplayGrid()
         {
-            var xMin = Parsed.Select(pos => pos.X).Min();
-            var xMax = Parsed.Select(pos => pos.X).Max();
-            var yMin = Parsed.Select(pos => pos.Y).Min();
-            var yMax = Parsed.Select(pos => pos.Y).Max();
-            var grid = new bool[xMax - xMin + 1, yMax - yMin + 1];
-            foreach (var pos in Parsed)
-            {
-                grid[pos.X - xMin, pos.Y - yMin] = true;
-            }
+            int xMin = Parsed.Min(pos => pos.X),
+                xMax = Parsed.Max(pos => pos.X),
+                yMin = Parsed.Min(pos => pos.Y),
+                yMax = Parsed.Max(pos => pos.Y),
+                width = xMax - xMin + 1,
+                height = yMax - yMin + 1;
 
-            Enumerable.Range(0, yMax - yMin + 1).ToList().ForEach(y =>
+            var points = new HashSet<Point>(Parsed.Select(p => new Point(p.X, p.Y)));
+            Enumerable.Range(0, height).ToList().ForEach(y =>
             {
-                Console.WriteLine(string.Join("",
-                    Enumerable.Range(0, xMax - xMin + 1).Select(x => grid[x, y] ? 'X' : ' ')));
+                Console.WriteLine(string.Join("", Enumerable.Range(0, width).Select(x =>
+                    points.Contains(new Point(xMin + x, yMin + y)) ? '\u2588' : ' ')));
             });
         }
     }
