@@ -77,14 +77,11 @@ namespace Day10
                 grid[pos.X - xMin, pos.Y - yMin] = true;
             }
 
-            for (var y = 0; y < yMax - yMin + 1; y++)
+            Enumerable.Range(0, yMax - yMin + 1).ToList().ForEach(y =>
             {
-                for (var x = 0; x < xMax - xMin + 1; x++)
-                {
-                    Console.Write(grid[x, y] ? 'X' : ' ');
-                }
-                Console.WriteLine();
-            }
+                Console.WriteLine(string.Join("",
+                    Enumerable.Range(0, xMax - xMin + 1).Select(x => grid[x, y] ? 'X' : ' ')));
+            });
         }
     }
 }
