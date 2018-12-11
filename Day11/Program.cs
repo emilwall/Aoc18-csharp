@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -13,57 +14,60 @@ namespace Day11
         static void Main(string[] args)
         {
             const int gridSize = 300;
+            var timer = Stopwatch.StartNew();
             var serialNumber = int.Parse(Input.First());
-            var grid = Enumerable.Range(1, gridSize)
-                .SelectMany(x => Enumerable.Range(1, gridSize)
-                    .Select(y => new Point(x, y))
-                    .ToArray())
-                .ToArray();
+            var grid = Enumerable.Range(1, gridSize).AsParallel()
+                .Select(x => Enumerable.Range(1, gridSize)
+                    .Select(y => 
+                    {
+                        var rackId = x + 10;
+                        var powerLevel = rackId * y;
+                        powerLevel += serialNumber;
+                        powerLevel *= rackId;
+                        return powerLevel % 1000 / 100 - 5;
+                    }).ToArray()
+                ).ToArray();
 
-            var powerLevels = grid.ToDictionary(p => p, p =>
-            {
-                var rackId = p.X + 10;
-                var powerLevel = rackId * p.Y;
-                powerLevel += serialNumber;
-                powerLevel *= rackId;
-                return powerLevel % 1000 / 100 - 5;
+            var squareSizes = Enumerable.Range(3, 30).AsParallel().ToDictionary(size => size, size => {
+                int x = 1, largest = int.MinValue, prevTotal = int.MinValue;
+                var targetPoint = new Point(1, 1);
+                do
+                {
+                    int y = 1, total = prevTotal;
+                    var p = new Point(x, y);
+                    if (total == int.MinValue) {
+                        total = Enumerable.Range(x, size).Select(x2 => Enumerable.Range(y, size).Sum(y2 => grid[x2-1][y2-1])).Sum();
+                    }
+                    else
+                    {
+                        total -= Enumerable.Range(p.Y, size).Sum(y2 => grid[x - 2][y2 - 1]);
+                        total += Enumerable.Range(p.Y, size).Sum(y2 => grid[x + size - 2][y2 - 1]);
+                    }
+                    if (total > largest)
+                    {
+                        (targetPoint, largest) = (p, total);
+                    }
+                    prevTotal = total;
+                    do
+                    {
+                        p = new Point(x, y + 1);
+                        total -= Enumerable.Range(p.X, size).Sum(x2 => grid[x2 - 1][y - 1]);
+                        total += Enumerable.Range(p.X, size).Sum(x2 => grid[x2 - 1][y + size - 1]);
+                        if (total > largest)
+                        {
+                            (targetPoint, largest) = (p, total);
+                        }
+                    } while (++y < gridSize - size);
+                } while (++x < gridSize - size);
+
+                return (targetPoint, largest);
             });
 
-            var powers = new Dictionary<Point, List<int>>();
-            for (var i = 0; i < gridSize; i++)
-            {
-                for (var j = 0; j < gridSize; j++)
-                {
-                    var p = grid[i * gridSize + j];
-                    powers[p] = new List<int> { powerLevels[p] };
-                    var indexBounds = Math.Min(gridSize - i, gridSize - j);
-                    var maxSquareSize = Math.Min(30, indexBounds); // Law of large numbers
-                    for (var k = 1; k < maxSquareSize; k++)
-                    {
-                        powers[p].Add(
-                            powers[p].Last()
-                            + Enumerable.Range(0, k + 1).Sum(r => powerLevels[new Point(p.X + k, p.Y + r)])
-                            + Enumerable.Range(0, k + 1).Sum(r => powerLevels[new Point(p.X + r, p.Y + k)])
-                            - powerLevels[new Point(p.X + k, p.Y + k)]
-                        );
-                    }
-                }
+            var max1 = squareSizes[3];
+            Console.WriteLine($"Part 1: {max1.Item1.X},{max1.Item1.Y} (power: {max1.Item2}, time: {timer.ElapsedMilliseconds}ms)");
 
-                if (i % 20 == 0)
-                {
-                    Console.Write($"Completed: {i}/{gridSize}  ");
-                    Console.SetCursorPosition(0, Console.CursorTop);
-                }
-            }
-
-            var max1 = powers.Max(p => p.Value.Count > 2 ? p.Value[2] : 0);
-            var item1 = powers.First(p => p.Value.Count > 2 && p.Value[2] == max1);
-            Console.WriteLine($"Part 1: {item1.Key.X},{item1.Key.Y} (power: {max1})");
-
-            var max2 = powers.Max(p => p.Value.Max());
-            var item2 = powers.First(p => p.Value.Any(power => power == max2));
-            var itemIndex = item2.Value.FindIndex(power => power == max2) + 1;
-            Console.WriteLine($"Part 2: {item2.Key.X},{item2.Key.Y},{itemIndex} (power: {max2})");
+            var max2 = squareSizes.Aggregate((agg, s) => agg.Value.Item2 < s.Value.Item2 ? s : agg);
+            Console.WriteLine($"Part 2: {max2.Value.Item1.X},{max2.Value.Item1.Y},{max2.Key} (power: {max2.Value.Item2}, time: {timer.ElapsedMilliseconds}ms)");
         }
     }
 }
