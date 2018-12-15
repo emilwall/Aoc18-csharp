@@ -147,17 +147,22 @@ namespace Day15
             Dictionary<(int x, int y), (char c, int hp)> combatants,
             KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
         {
+            var astarGrid = GetAstarGrid(grid);
+            var cp = new Position(pos.x, pos.y);
             var targetPositions = combatants.Where(c => c.Value.c != combatants[pos].c)
                 .Select(c => c.Key)
                 .SelectMany(c => new (int x, int y)[]
                 {
                     (c.x + 1, c.y), (c.x - 1, c.y), (c.x, c.y + 1), (c.x, c.y - 1)
                 })
-                .Where(c => grid[c.y][c.x].Value.c == '.');
+                .Where(c => grid[c.y][c.x].Value.c == '.')
+                .Select(c => new Position(c.x, c.y));
 
-            var shortestPath = GetShortestPath(targetPositions, grid, pos);
+            var shortestPath = GetShortestPath(targetPositions, astarGrid, grid, cp);
 
-            return shortestPath ?? pos;
+            return shortestPath.HasValue
+                ? (x: shortestPath.Value.X, y: shortestPath.Value.Y)
+                : pos;
         }
 
         private static Grid GetAstarGrid(KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
@@ -178,84 +183,25 @@ namespace Day15
             return astarGrid;
         }
 
-        private static (int x, int y)? GetShortestPath(
-            IEnumerable<(int x, int y)> targetPositions,
+        private static Position? GetShortestPath(
+            IEnumerable<Position> targetPositions,
+            Grid astarGrid,
             KeyValuePair<(int x, int y), (char c, int hp)>[][] grid,
-            (int x, int y) pos)
+            Position cp)
         {
-            var nextStep = targetPositions.Select(target =>
-            {
-                var steps = grid.SelectMany(c => c)
-                    .Where(c => c.Value.c == '.')
-                    .ToDictionary(c => c.Key, _ => 100000);
+            var paths = targetPositions.AsParallel()
+                .Select(p => astarGrid.GetPath(cp, p, MovementPatterns.LateralOnly))
+                .OrderBy(path => path.Length + path.Count(p => grid[p.Y][p.X].Value.c == '.') * grid.Length)
+                .Select(path => path.Skip(1).ToList())
+                .Where(path => grid[path.First().Y][path.First().X].Value.c == '.')
+                .ToList();
 
-                var proccessed = new HashSet<(int x, int y)>();
-                var remaining = new Stack<(int x, int y)>();
-                var current = target;
-                steps[current] = 0;
-                do
-                {
-                    proccessed.Add(current);
-                    var options = new[]
-                    {
-                        (x: current.x + 1, y: current.y),
-                        (x: current.x - 1, y: current.y),
-                        (x: current.x, y: current.y + 1),
-                        (x: current.x, y: current.y - 1)
-                    };
-                    foreach (var option in options)
-                    {
-                        if (steps.ContainsKey(option))
-                        {
-                            steps[current] = Math.Min(steps[option] + 1, steps[current]);
-                            steps[option] = Math.Min(steps[option], steps[current] + 1);
-                        }
+            var shortestPath = paths
+                .OrderBy(path => path.Any() ? path.First().Y : int.MaxValue)
+                .ThenBy(path => path.Any() ? path.First().X : int.MaxValue)
+                .FirstOrDefault();
 
-                        if (!proccessed.Contains(option))
-                        {
-                            remaining.Push(option);
-                        }
-                    }
-
-                    current = remaining.Pop();
-                } while (remaining.Any() || current.x != pos.x || current.y != pos.y);
-
-                return new[]
-                {
-                    (x: pos.x + 1, y: pos.y),
-                    (x: pos.x - 1, y: pos.y),
-                    (x: pos.x, y: pos.y + 1),
-                    (x: pos.x, y: pos.y - 1)
-                }.Where(option => steps.ContainsKey(option))
-                .GroupBy(option => steps[option])
-                .OrderBy(group => group.Key)
-                .ThenBy(group => group.First().y)
-                .ThenBy(group => group.First().x)
-                .First();
-            }).OrderBy(group => group.Key)
-                .ThenBy(group => group.First().y)
-                .ThenBy(group => group.First().x)
-                .First().First();
-
-            return Math.Abs(nextStep.x - pos.x) + Math.Abs(nextStep.y - pos.y) == 1
-                ? nextStep
-                : ((int x, int y)?)null;
-
-
-
-            //var paths = targetPositions.AsParallel()
-            //    .Select(p => astarGrid.GetPath(cp, p, MovementPatterns.LateralOnly))
-            //    .OrderBy(path => path.Length + path.Count(p => grid[p.Y][p.X].Value.c == '.') * grid.Length)
-            //    .Select(path => path.Skip(1).ToList())
-            //    .Where(path => grid[path.First().Y][path.First().X].Value.c == '.')
-            //    .ToList();
-
-            //var shortestPath = paths
-            //    .OrderBy(path => path.Any() ? path.First().Y : int.MaxValue)
-            //    .ThenBy(path => path.Any() ? path.First().X : int.MaxValue)
-            //    .FirstOrDefault();
-
-            //return shortestPath?.Any() ?? false ? shortestPath.First() : (Position?)null;
+            return shortestPath?.Any() ?? false ? shortestPath.First() : (Position?)null;
         }
 
         private static bool IsCombatant(char c)
