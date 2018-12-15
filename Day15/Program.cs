@@ -9,7 +9,7 @@ namespace Day15
 {
     class Program
     {
-        static readonly string[] Input = File.ReadAllLines("example.txt");
+        static readonly string[] Input = File.ReadAllLines("input.txt");
 
         static void Main(string[] args)
         {
@@ -32,17 +32,22 @@ namespace Day15
                 iterations++;
                 //if (iterations % 10 == 0)
                 //{
-                    Console.WriteLine(iterations);
-                    PrintGrid(grid);
+                //    Console.WriteLine(iterations);
+                //    PrintGrid(grid);
                 //}
             }
 
-            //Console.WriteLine(iterations);
-            //PrintGrid(grid);
+            Console.WriteLine(iterations--);
+            PrintGrid(grid);
             Console.WriteLine($"Completed: {timer.ElapsedMilliseconds}ms");
             var hpSum = combatants.Sum(c => c.Value.hp);
             Console.WriteLine($"Part 1: {iterations}*{hpSum}={iterations*hpSum}");
             // 327293 too high
+            // 248535 too high
+            // 238476 too low
+            // 247616 close
+            // 240814?
+            // 245280
 
             Console.WriteLine($"Part 2: {0}");
         }
@@ -147,7 +152,7 @@ namespace Day15
             Dictionary<(int x, int y), (char c, int hp)> combatants,
             KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
         {
-            var astarGrid = GetAstarGrid(grid);
+            var astarGrid = GetAstarGrid(grid, pos);
             var cp = new Position(pos.x, pos.y);
             var targetPositions = combatants.Where(c => c.Value.c != combatants[pos].c)
                 .Select(c => c.Key)
@@ -165,18 +170,28 @@ namespace Day15
                 : pos;
         }
 
-        private static Grid GetAstarGrid(KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
+        private static Grid GetAstarGrid(
+            KeyValuePair<(int x, int y), (char c, int hp)>[][] grid,
+            (int x, int y) pos)
         {
-            var astarGrid = new Grid(grid[0].Length, grid.Length);
+            var astarGrid = new Grid(grid[0].Length, grid.Length, 1.1f);
             foreach (var pair in grid.SelectMany(c => c))
             {
-                if (pair.Value.c == '#')
+                if (pair.Value.c != '.')
                 {
                     astarGrid.BlockCell(new Position(pair.Key.x, pair.Key.y));
                 }
-                if (pair.Value.c != '.')
+                else if (pos.x == pair.Key.x + 1 && pos.y == pair.Key.y)
                 {
-                    astarGrid.SetCellCost(new Position(pair.Key.x, pair.Key.y), grid.Length);
+                    astarGrid.SetCellCost(new Position(pair.Key.x, pair.Key.y), 1.1f);
+                }
+                else if (pos.x == pair.Key.x - 1 && pos.y == pair.Key.y)
+                {
+                    astarGrid.SetCellCost(new Position(pair.Key.x, pair.Key.y), 1.2f);
+                }
+                else if (pos.x == pair.Key.x && pos.y == pair.Key.y - 1)
+                {
+                    astarGrid.SetCellCost(new Position(pair.Key.x, pair.Key.y), 1.3f);
                 }
             }
 
@@ -191,13 +206,13 @@ namespace Day15
         {
             var paths = targetPositions.AsParallel()
                 .Select(p => astarGrid.GetPath(cp, p, MovementPatterns.LateralOnly))
-                .OrderBy(path => path.Length + path.Count(p => grid[p.Y][p.X].Value.c == '.') * grid.Length)
                 .Select(path => path.Skip(1).ToList())
-                .Where(path => grid[path.First().Y][path.First().X].Value.c == '.')
+                .Where(path => path.Any() && grid[path.First().Y][path.First().X].Value.c == '.')
                 .ToList();
 
             var shortestPath = paths
-                .OrderBy(path => path.Any() ? path.First().Y : int.MaxValue)
+                .OrderBy(path => path.Count + path.Count(p => grid[p.Y][p.X].Value.c != '.') * grid.Length)
+                .ThenBy(path => path.Any() ? path.First().Y : int.MaxValue)
                 .ThenBy(path => path.Any() ? path.First().X : int.MaxValue)
                 .FirstOrDefault();
 
