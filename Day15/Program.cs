@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using RoyT.AStar;
 
 namespace Day15
 {
@@ -159,6 +160,24 @@ namespace Day15
             return shortestPath ?? pos;
         }
 
+        private static Grid GetAstarGrid(KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
+        {
+            var astarGrid = new Grid(grid[0].Length, grid.Length);
+            foreach (var pair in grid.SelectMany(c => c))
+            {
+                if (pair.Value.c == '#')
+                {
+                    astarGrid.BlockCell(new Position(pair.Key.x, pair.Key.y));
+                }
+                if (pair.Value.c != '.')
+                {
+                    astarGrid.SetCellCost(new Position(pair.Key.x, pair.Key.y), grid.Length);
+                }
+            }
+
+            return astarGrid;
+        }
+
         private static (int x, int y)? GetShortestPath(
             IEnumerable<(int x, int y)> targetPositions,
             KeyValuePair<(int x, int y), (char c, int hp)>[][] grid,
@@ -221,6 +240,22 @@ namespace Day15
             return Math.Abs(nextStep.x - pos.x) + Math.Abs(nextStep.y - pos.y) == 1
                 ? nextStep
                 : ((int x, int y)?)null;
+
+
+
+            //var paths = targetPositions.AsParallel()
+            //    .Select(p => astarGrid.GetPath(cp, p, MovementPatterns.LateralOnly))
+            //    .OrderBy(path => path.Length + path.Count(p => grid[p.Y][p.X].Value.c == '.') * grid.Length)
+            //    .Select(path => path.Skip(1).ToList())
+            //    .Where(path => grid[path.First().Y][path.First().X].Value.c == '.')
+            //    .ToList();
+
+            //var shortestPath = paths
+            //    .OrderBy(path => path.Any() ? path.First().Y : int.MaxValue)
+            //    .ThenBy(path => path.Any() ? path.First().X : int.MaxValue)
+            //    .FirstOrDefault();
+
+            //return shortestPath?.Any() ?? false ? shortestPath.First() : (Position?)null;
         }
 
         private static bool IsCombatant(char c)
