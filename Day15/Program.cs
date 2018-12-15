@@ -15,18 +15,20 @@ namespace Day15
         static void Main(string[] args)
         {
             var timer = Stopwatch.StartNew();
-            var elfCount = Input.Sum(line => line.Count(c => c == 'E'));
+
             var (iterations, combatants) = Execute();
             var hpSum = combatants.Sum(c => c.Value.hp);
-            Console.WriteLine($"Part 1: {iterations}*{hpSum}={iterations * hpSum}");
+            Console.WriteLine($"Part 1: {iterations}*{hpSum}={iterations * hpSum} ({timer.ElapsedMilliseconds}ms)");
+
+            var elfCount = Input.Sum(line => line.Count(c => c == 'E'));
             do
             {
                 _elfAttackPower++;
                 (iterations, combatants) = Execute();
             } while (combatants.Count(pair => pair.Value.c == 'E') != elfCount);
+
             hpSum = combatants.Sum(c => c.Value.hp);
-            Console.WriteLine($"Part 2: {iterations}*{hpSum}={iterations * hpSum}");
-            // Too high
+            Console.WriteLine($"Part 2: {iterations}*{hpSum}={iterations * hpSum} ({timer.ElapsedMilliseconds}ms)");
         }
 
         private static (int, Dictionary<(int x, int y), (char c, int hp)>) Execute()
@@ -43,20 +45,12 @@ namespace Day15
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
 
             var iterations = 0;
-            //PrintGrid(grid);
             while (ExecuteRounds(grid, combatants))
             {
                 iterations++;
-                //if (iterations % 10 == 0)
-                //{
-                //    Console.WriteLine(iterations);
-                //    PrintGrid(grid);
-                //}
             }
 
-            //Console.WriteLine(iterations--);
-            //PrintGrid(grid);
-            return (iterations, combatants);
+            return (--iterations, combatants);
         }
 
         private static void PrintGrid(KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
@@ -212,13 +206,11 @@ namespace Day15
             KeyValuePair<(int x, int y), (char c, int hp)>[][] grid,
             Position cp)
         {
-            var paths = targetPositions.AsParallel()
+            var shortestPath = targetPositions.AsParallel()
                 .Select(p => astarGrid.GetPath(cp, p, MovementPatterns.LateralOnly))
+                .ToList()
                 .Select(path => path.Skip(1).ToList())
                 .Where(path => path.Any() && grid[path.First().Y][path.First().X].Value.c == '.')
-                .ToList();
-
-            var shortestPath = paths
                 .OrderBy(path => path.Count + path.Count(p => grid[p.Y][p.X].Value.c != '.') * grid.Length)
                 .ThenBy(path => path.Any() ? path.First().Y : int.MaxValue)
                 .ThenBy(path => path.Any() ? path.First().X : int.MaxValue)
