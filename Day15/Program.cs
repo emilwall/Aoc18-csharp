@@ -10,10 +10,27 @@ namespace Day15
     class Program
     {
         static readonly string[] Input = File.ReadAllLines("input.txt");
+        private static int _elfAttackPower = 3;
 
         static void Main(string[] args)
         {
             var timer = Stopwatch.StartNew();
+            var elfCount = Input.Sum(line => line.Count(c => c == 'E'));
+            var (iterations, combatants) = Execute();
+            var hpSum = combatants.Sum(c => c.Value.hp);
+            Console.WriteLine($"Part 1: {iterations}*{hpSum}={iterations * hpSum}");
+            do
+            {
+                _elfAttackPower++;
+                (iterations, combatants) = Execute();
+            } while (combatants.Count(pair => pair.Value.c == 'E') != elfCount);
+            hpSum = combatants.Sum(c => c.Value.hp);
+            Console.WriteLine($"Part 2: {iterations}*{hpSum}={iterations * hpSum}");
+            // Too high
+        }
+
+        private static (int, Dictionary<(int x, int y), (char c, int hp)>) Execute()
+        {
             var grid = Input.Select((line, y) => line
                 .Select((c, x) => new KeyValuePair<(int x, int y), (char c, int hp)>(
                     (x, y),
@@ -26,7 +43,7 @@ namespace Day15
                 .ToDictionary(pair => pair.Key, pair => pair.Value);
 
             var iterations = 0;
-            PrintGrid(grid);
+            //PrintGrid(grid);
             while (ExecuteRounds(grid, combatants))
             {
                 iterations++;
@@ -37,19 +54,9 @@ namespace Day15
                 //}
             }
 
-            Console.WriteLine(iterations--);
-            PrintGrid(grid);
-            Console.WriteLine($"Completed: {timer.ElapsedMilliseconds}ms");
-            var hpSum = combatants.Sum(c => c.Value.hp);
-            Console.WriteLine($"Part 1: {iterations}*{hpSum}={iterations*hpSum}");
-            // 327293 too high
-            // 248535 too high
-            // 238476 too low
-            // 247616 close
-            // 240814?
-            // 245280
-
-            Console.WriteLine($"Part 2: {0}");
+            //Console.WriteLine(iterations--);
+            //PrintGrid(grid);
+            return (iterations, combatants);
         }
 
         private static void PrintGrid(KeyValuePair<(int x, int y), (char c, int hp)>[][] grid)
@@ -128,12 +135,13 @@ namespace Day15
             }
 
             var target = targets.First();
-            if (target.Value.hp > 3)
+            var attackPower = combatants[pos].c == 'G' ? 3 : _elfAttackPower;
+            if (target.Value.hp > attackPower)
             {
-                combatants[target.Key] = (target.Value.c, target.Value.hp - 3);
+                combatants[target.Key] = (target.Value.c, target.Value.hp - attackPower);
                 grid[target.Key.y][target.Key.x] = new KeyValuePair<(int x, int y), (char c, int hp)>(
                     target.Key,
-                    (target.Value.c, target.Value.hp - 3)
+                    (target.Value.c, target.Value.hp - attackPower)
                 );
             }
             else
