@@ -178,7 +178,7 @@ namespace Day16
             {
                 matches.Add(OpcodeName.seti);
             }
-            if (output.SequenceEqual(Gtir(instr, input)))
+            if (output.SequenceEqual(Gtir(input, instr)))
             {
                 matches.Add(OpcodeName.gtir);
             }
@@ -190,7 +190,7 @@ namespace Day16
             {
                 matches.Add(OpcodeName.gtrr);
             }
-            if (output.SequenceEqual(Eqir(instr, input)))
+            if (output.SequenceEqual(Eqir(input, instr)))
             {
                 matches.Add(OpcodeName.eqir);
             }
@@ -275,7 +275,7 @@ namespace Day16
             return res;
         }
 
-        private static int[] Gtir(int[] instr, int[] input)
+        private static int[] Gtir(int[] input, int[] instr)
         {
             var res = input.ToArray();
             res[instr[3]] = instr[1] > input[instr[2]] ? 1 : 0;
@@ -296,7 +296,7 @@ namespace Day16
             return res;
         }
 
-        private static int[] Eqir(int[] instr, int[] input)
+        private static int[] Eqir(int[] input, int[] instr)
         {
             var res = input.ToArray();
             res[instr[3]] = instr[1] == input[instr[2]] ? 1 : 0;
