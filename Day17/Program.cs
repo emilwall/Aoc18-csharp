@@ -45,15 +45,31 @@ namespace Day17
 
             if (water.y < grid.Length)
             {
-                grid[--water.y][water.x] = '~';
-                int left = water.x, right = water.x;
-                while (grid[water.y][left - 1] != '#' && grid[water.y + 1][left] == '#')
+                int left, right;
+                do
                 {
-                    grid[water.y][--left] = '~';
+                    grid[--water.y][water.x] = '~';
+                    left = water.x;
+                    while (grid[water.y][left - 1] != '#' && new[] {'#', '~'}.Contains(grid[water.y + 1][left]))
+                    {
+                        grid[water.y][--left] = '~';
+                    }
+
+                    right = water.x;
+                    while (grid[water.y][right + 1] != '#' && new[] {'#', '~'}.Contains(grid[water.y + 1][right]))
+                    {
+                        grid[water.y][++right] = '~';
+                    }
+                } while (grid[water.y][left - 1] == '#' && grid[water.y][right + 1] == '#');
+
+                if (grid[water.y + 1][left] == '.')
+                {
+                    FindBottomAndFill(grid, (left, water.y + 1));
                 }
-                while (grid[water.y][right + 1] != '#' && grid[water.y + 1][right] == '#')
+
+                if (grid[water.y + 1][right] == '.')
                 {
-                    grid[water.y][++right] = '~';
+                    FindBottomAndFill(grid, (right, water.y + 1));
                 }
             }
         }
