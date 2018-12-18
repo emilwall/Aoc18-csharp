@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -16,12 +17,11 @@ namespace Day18
             var timer = Stopwatch.StartNew();
 
             Execute(10);
-            var res1 = _grid.SelectMany(c => c).Count(c => c == '|') *
-                       _grid.SelectMany(c => c).Count(c => c == '#');
+            var res1 = GetResourceValue();
 
-            Execute(607); // Found through manual inspection and some math, will differ depending on input
-            var res2 = _grid.SelectMany(c => c).Count(c => c == '|') *
-                       _grid.SelectMany(c => c).Count(c => c == '#');
+            TravelInTime();
+            Execute(1000000000);
+            var res2 = GetResourceValue();
 
             var finishTime = timer.ElapsedMilliseconds;
             Visualize(_grid);
@@ -30,23 +30,51 @@ namespace Day18
             Console.WriteLine($"Part 2: {res2}");
         }
 
+        private static void TravelInTime()
+        {
+            var foundSoFar = new Dictionary<int, char[][]>();
+            var prevValue = GetResourceValue();
+            while (!foundSoFar.ContainsKey(prevValue) ||
+                   !_grid.Select((row, i) => row.SequenceEqual(foundSoFar[prevValue][i])).All(x => x))
+            {
+                foundSoFar[prevValue] = _grid;
+                Execute();
+                prevValue = GetResourceValue();
+            }
+
+            var configurations = new List<char[][]>();
+            var newValue = -1;
+            while (newValue != prevValue)
+            {
+                configurations.Add(_grid);
+                Execute();
+                newValue = GetResourceValue();
+            }
+
+            _minute = 999999999 - ++_minute % configurations.Count;
+        }
+
+        private static int GetResourceValue()
+        {
+            return _grid.SelectMany(c => c).Count(c => c == '|') *
+                   _grid.SelectMany(c => c).Count(c => c == '#');
+        }
+
         private static void Visualize(char[][] grid)
         {
             Console.WriteLine(string.Join('\n', grid.Select(string.Concat<char>)));
         }
 
-        private static void Execute(int targetMinute)
+        private static void Execute(int targetMinute = 0)
         {
-            while (_minute++ <= targetMinute)
+            do
             {
                 _grid = _grid.AsParallel().Select((row, i) =>
                     row.Select((c, k) =>
                         Evolve(_grid, i, k)
                     ).ToArray()
                 ).ToArray();
-            }
-
-            _minute--;
+            } while (++_minute < targetMinute);
         }
 
         private static char Evolve(char[][] prev, int i, int k)
